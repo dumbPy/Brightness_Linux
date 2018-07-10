@@ -38,10 +38,10 @@ if (len(sys.argv)<3):
 try:
     display = displays[int(sys.argv[1])-1]
     brightness = sys.argv[2]
-    if(brightness>1.5 or brightness < 0):
+    if(float(brightness)>1.5 or float(brightness) < 0):
         print("Brightness out of range. Try Between 0 and 1")
     else:
-        os.system("xrandr --output "+d+" --brightness "+brightness)
+        os.system("xrandr --output "+display+" --brightness "+brightness)
     
 except:
     print("Wrong Display Number. Choose from displays: "+ str(list(range(1, len(displays)+1))))
