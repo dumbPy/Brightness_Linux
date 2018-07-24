@@ -199,9 +199,11 @@ set wrap "Wrap lines
 vnoremap <silent> * :<C-u>call VisualSelection('', '')<CR>/<C-R>=@/<CR><CR>
 vnoremap <silent> # :<C-u>call VisualSelection('', '')<CR>?<C-R>=@/<CR><CR>
 
-" Remove Highlight after escape in search mode
-nnoremap <esc> :noh<return><esc>
 
+" Remove Highlight after escape in search mode
+"nnoremap <esc> :noh<return><esc>
+"Commented out the above line as it was causing problem with other modes.
+"rather use :noh to remove highlights.
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
