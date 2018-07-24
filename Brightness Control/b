@@ -27,21 +27,91 @@
 
 import os
 import sys
+from configparser import ConfigParser
+from argparse import ArgumentParser
 
 #Get the attached displays
-displays = os.popen("xrandr | grep ' connected ' | awk '{print$1 }'").read().split('\n')[:-1]
+def get_displays(): return os.popen("xrandr | grep ' connected ' | awk '{print$1 }'").read().split('\n')[:-1]
 
-if (len(sys.argv)<3):
-    print("Not Enough Arguments Passed \n")
-    print("Try 'b <DisplayNo.> <Brightness>'\n\n")
-    print("DisplayNo. Starts from 1 and Brightness varies from 0 to 1")
-try:
-    display = displays[int(sys.argv[1])-1]
-    brightness = sys.argv[2]
-    if(float(brightness)>1.5 or float(brightness) < 0):
-        print("Brightness out of range. Try Between 0 and 1")
+
+def get_config():
+    """Returns the SafeConfigParser Class Object
+    """
+    config = ConfigParser()
+    HOME=os.getenv('HOME')
+    os.makedirs(HOME+'/.config/b-brightness-control', exist_ok=True)
+    conf = HOME+'/.config/b-brightness-control/brightness_config.ini'
+    if not os.path.exists(conf):
+        config['default']={display: 1 for display in displays}
     else:
-        os.system("xrandr --output "+display+" --brightness "+brightness)
-    
-except:
-    print("Wrong Display Number. Choose from displays: "+ str(list(range(1, len(displays)+1))))
+        config.read(conf)
+    return config, conf
+
+def write_config(config, filename):
+    with open(filename, 'w') as file:
+        config.write(file)
+
+
+def parse_arguments():
+    parser = ArgumentParser(description='Brightness Control By Using XRandR Package in Linux \n \
+                                         Run without arguments to load Default config.')
+    # parser.add_argument('-n', '--night', help='Use Night Mode Settings. use --set to set values for Night mode',
+    #                     action='store_true')
+    parser.add_argument('displayNo', nargs='?', default=0, choices=list(range(1,len(displays)+1)), type=int,
+                        help='Enter Display Number. `0` will load last known settings')
+    parser.add_argument('brightness', nargs='?', default=0, choices=range(2), type=float,
+                        help='Brightness to set (0-1)')
+    parser.add_argument('--set', '-s', help='Set Values of mode: \n \
+                                             enter `mode` after --set. If mode not found,\
+                                             this script will create the passed mode.\n \
+                                             If no mode is passed, Default Mode will be modified.',
+                        default='default')
+    parser.add_argument('--mode', help='Mode to use. New modes can be set by --set \
+                                      Skip this flag to use Default mode', choices=config.sections())
+
+    args=parser.parse_args()
+    return args
+
+
+def set_(display, brightness, mode='default'):
+    os.system("xrandr --output " + display + " --brightness " + brightness)
+    config[mode][display] = brightness
+
+if __name__ == "__main__":
+    displays = get_displays()
+    config,config_filename=get_config()
+    args  =parse_arguments()
+    #Setting Mode to use
+    if args.mode==None: mode='default'
+    else: mode=args.mode
+    #If No Display passed, apply to all displays their default values.
+    if not args.displayNo:
+        for display in displays:
+            set_(display=display, brightness=config[mode][display], mode=mode)
+    elif not args.brightness: #Display passed, but brightness not passed. Apply default.
+            set_(display=displays[args.displayNo], brightness=config[mode][display], mode=mode)
+    else: #Both Display and Brightness Given
+            set_(display=displays[args.display], brightness=args.brightness, mode=mode)
+
+    write_config(config, config_filename)
+
+
+#
+# if (len(sys.argv)<3):
+#     print("Not Enough Arguments Passed \n")
+#     print("Try 'b <DisplayNo.> <Brightness>'\n\n")
+#     print("DisplayNo. Starts from 1 and Brightness varies from 0 to 1")
+#
+# for d in displays:
+#     config.add_section('last', d, )
+#
+# try:
+#     display = displays[int(sys.argv[1])-1]
+#     brightness = sys.argv[2]
+#     if(float(brightness)>1.5 or float(brightness) < 0):
+#         print("Brightness out of range. Try Between 0 and 1")
+#     else:
+#         os.system("xrandr --output "+display+" --brightness "+brightness)
+#
+# except:
+#     print("Wrong Display Number. Choose from displays: "+ str(list(range(1, len(displays)+1))))
