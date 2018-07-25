@@ -28,7 +28,7 @@
 import os
 import sys
 from configparser import ConfigParser
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 
 #Get the attached displays
 def get_displays(): return os.popen("xrandr | grep ' connected ' | awk '{print$1 }'").read().split('\n')[:-1]
@@ -52,34 +52,29 @@ def write_config(config, filename):
         config.write(file)
 
 
-class Range(object):
-    def __init__(self, start, end):
-        self.start = start
-        self.end = end
-    def __eq__(self, other):
-        return self.start <= other <= self.end
-    # def __str__(self):
-    #     print("{} - {}".format(self.start, self.end))
+
+def restricted_float(x):
+    x = float(x)
+    if x < 0.0 or x > 1.0:
+        raise ArgumentTypeError("%r not in range [0.0, 1.0]"%(x,))
+    return x
 
 
 def parse_arguments():
-    parser = ArgumentParser(description='Brightness Control By Using XRandR Package in Linux \n \
+    parser = ArgumentParser(description='Brightness Control By Using XRandR Package in Linux. \n \
                                          Run without arguments to load Default config.')
-    # parser.add_argument('-n', '--night', help='Use Night Mode Settings. use --set to set values for Night mode',
-    #                     action='store_true')
+
     parser.add_argument('displayNo', nargs='?', default=0, choices=list(range(1,len(displays)+1)), type=int,
-                        help='Enter Display Number. `0` will load last known settings')
-    parser.add_argument('brightness', nargs='?', default=0, choices=[Range(0.0, 1.0)], type=float,
-                        help='Brightness to set (0-1)')
-    parser.add_argument('--set', '-s', help='Set Values of mode: \n \
+                        help='Enter Display Number')
+    parser.add_argument('brightness', nargs='?', default=0, type=restricted_float,
+                        help='Brightness to set [0.0-1.0]')
+    parser.add_argument('--set', '-s', help='Set(and save) Values of passed "mode": \n \
                                              enter `mode` after --set. If mode not found,\
                                              this script will create the passed mode.\n \
                                              If no mode is passed, Default Mode will be modified.',
                         default='default', const='default', nargs='?')
     parser.add_argument('--mode', '-m', help='Mode to use. New modes can be set by --set \
                                       Skip this flag to use Default mode', choices=config.sections())
-    #for debugging
-    #sys.argv=['b','1', '0.5', '--set']
     args=parser.parse_args()
     return args
 
@@ -92,6 +87,7 @@ def set_(display, brightness, mode='default'):
         print('New Mode created: {}'.format(mode))
     config[mode][display] = brightness
     print("dispay {} set to {}".format(displays.index(display)+1, brightness))
+
 
 if __name__ == "__main__":
     displays = get_displays()
@@ -114,24 +110,3 @@ if __name__ == "__main__":
             set_(display=displays[args.displayNo-1], brightness=args.brightness, mode=mode)
 
     write_config(config, config_filename)
-
-
-#
-# if (len(sys.argv)<3):
-#     print("Not Enough Arguments Passed \n")
-#     print("Try 'b <DisplayNo.> <Brightness>'\n\n")
-#     print("DisplayNo. Starts from 1 and Brightness varies from 0 to 1")
-#
-# for d in displays:
-#     config.add_section('last', d, )
-#
-# try:
-#     display = displays[int(sys.argv[1])-1]
-#     brightness = sys.argv[2]
-#     if(float(brightness)>1.5 or float(brightness) < 0):
-#         print("Brightness out of range. Try Between 0 and 1")
-#     else:
-#         os.system("xrandr --output "+display+" --brightness "+brightness)
-#
-# except:
-#     print("Wrong Display Number. Choose from displays: "+ str(list(range(1, len(displays)+1))))
