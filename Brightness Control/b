@@ -52,6 +52,16 @@ def write_config(config, filename):
         config.write(file)
 
 
+class Range(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+    def __eq__(self, other):
+        return self.start <= other <= self.end
+    # def __str__(self):
+    #     print("{} - {}".format(self.start, self.end))
+
+
 def parse_arguments():
     parser = ArgumentParser(description='Brightness Control By Using XRandR Package in Linux \n \
                                          Run without arguments to load Default config.')
@@ -59,39 +69,49 @@ def parse_arguments():
     #                     action='store_true')
     parser.add_argument('displayNo', nargs='?', default=0, choices=list(range(1,len(displays)+1)), type=int,
                         help='Enter Display Number. `0` will load last known settings')
-    parser.add_argument('brightness', nargs='?', default=0, choices=range(2), type=float,
+    parser.add_argument('brightness', nargs='?', default=0, choices=[Range(0.0, 1.0)], type=float,
                         help='Brightness to set (0-1)')
     parser.add_argument('--set', '-s', help='Set Values of mode: \n \
                                              enter `mode` after --set. If mode not found,\
                                              this script will create the passed mode.\n \
                                              If no mode is passed, Default Mode will be modified.',
-                        default='default')
-    parser.add_argument('--mode', help='Mode to use. New modes can be set by --set \
+                        default='default', const='default', nargs='?')
+    parser.add_argument('--mode', '-m', help='Mode to use. New modes can be set by --set \
                                       Skip this flag to use Default mode', choices=config.sections())
-
+    #for debugging
+    #sys.argv=['b','1', '0.5', '--set']
     args=parser.parse_args()
     return args
 
 
 def set_(display, brightness, mode='default'):
+    brightness=str(brightness)
     os.system("xrandr --output " + display + " --brightness " + brightness)
+    if not mode in config.sections():
+        config[mode]={}
+        print('New Mode created: {}'.format(mode))
     config[mode][display] = brightness
+    print("dispay {} set to {}".format(displays.index(display)+1, brightness))
 
 if __name__ == "__main__":
     displays = get_displays()
     config,config_filename=get_config()
     args  =parse_arguments()
     #Setting Mode to use
-    if args.mode==None: mode='default'
+    if not args.set=='default':
+        mode=args.set
+    elif args.mode==None: mode='default'
     else: mode=args.mode
+    print("Using Mode {}".format(mode))
+
     #If No Display passed, apply to all displays their default values.
     if not args.displayNo:
         for display in displays:
             set_(display=display, brightness=config[mode][display], mode=mode)
     elif not args.brightness: #Display passed, but brightness not passed. Apply default.
-            set_(display=displays[args.displayNo], brightness=config[mode][display], mode=mode)
-    else: #Both Display and Brightness Given
-            set_(display=displays[args.display], brightness=args.brightness, mode=mode)
+            set_(display=displays[args.displayNo-1], brightness=config[mode][display], mode=mode)
+    else: #Both Display and Brightness Given, save them to `args.set` mode
+            set_(display=displays[args.displayNo-1], brightness=args.brightness, mode=mode)
 
     write_config(config, config_filename)
 
