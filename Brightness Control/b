@@ -1,32 +1,6 @@
 #!/usr/bin/python3
 
-############################################################################################
-#
-# This script controls external monitor brightness using xrandr package.
-#
-############################################################################################ 
-
-
-############################################################################################
-# Directions to Use-
-
-# Drop to root user .i.e., "sudo su" for Debian and Ubuntu.
-# Copy this script to /usr/bin/ or any other system path.
-# make the file executable by "chmod +x AbsolutePathTo/b"
-
-# Now you can control brightness by "b DisplayNo. Brightness." 
-# where, DisplayNo. starts with 1 and Brightness is generally between 0 and 1.
-############################################################################################
-
-
-############################################################################################ 
-# eg. "b 1 0.7" to set brightness to 70% on 1st display.
-############################################################################################
-
-
-
 import os
-import sys
 from configparser import ConfigParser
 from argparse import ArgumentParser, ArgumentTypeError
 
@@ -53,10 +27,12 @@ def write_config(config, filename):
 
 
 
-def restricted_float(x):
+def restricted_float(brightness):
+    """For Handelling Brightness Value
+    """
     x = float(x)
     if x < 0.0 or x > 1.0:
-        raise ArgumentTypeError("%r not in range [0.0, 1.0]"%(x,))
+        raise ArgumentTypeError("%r not in range [0.0, 1.0]"%(brightness,))
     return x
 
 
