@@ -1,39 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import os
 from configparser import ConfigParser
 from argparse import ArgumentParser, ArgumentTypeError
-
-#Get the attached displays
-def get_displays(): return os.popen("xrandr | grep ' connected ' | awk '{print$1 }'").read().split('\n')[:-1]
-
-
-def get_config():
-    """Returns the SafeConfigParser Class Object
-    """
-    config = ConfigParser()
-    HOME=os.getenv('HOME')
-    os.makedirs(HOME+'/.config/b-brightness-control', exist_ok=True)
-    conf = HOME+'/.config/b-brightness-control/brightness_config.ini'
-    if not os.path.exists(conf):
-        config['default']={display: 1 for display in displays}
-    else:
-        config.read(conf)
-    return config, conf
-
-def write_config(config, filename):
-    with open(filename, 'w') as file:
-        config.write(file)
-
-
-
-def restricted_float(brightness):
-    """For Handelling Brightness Value
-    """
-    x = float(x)
-    if x < 0.0 or x > 1.0:
-        raise ArgumentTypeError("%r not in range [0.0, 1.0]"%(brightness,))
-    return x
 
 
 def parse_arguments():
@@ -53,6 +22,39 @@ def parse_arguments():
                                       Skip this flag to use Default mode', choices=config.sections())
     args=parser.parse_args()
     return args
+
+
+def restricted_float(brightness):
+    """For Handelling Brightness Value
+    """
+    x=brightness
+    x = float(x)
+    if x < 0.0 or x > 1.0:
+        raise ArgumentTypeError("%r not in range [0.0, 1.0]"%(brightness,))
+    return x
+
+
+#Get the attached displays
+def get_displays(): return os.popen("xrandr | grep ' connected ' | awk '{print$1 }'").read().split('\n')[:-1]
+
+
+def get_config():
+    """Returns the config dictionary and config file absolute path
+    """
+    config = ConfigParser()
+    HOME=os.getenv('HOME')
+    os.makedirs(HOME+'/.config/b-brightness-control', exist_ok=True)
+    conf = HOME+'/.config/b-brightness-control/brightness_config.ini'
+    if not os.path.exists(conf):
+        config['default']={display: 1 for display in displays}
+    else:
+        config.read(conf)
+    return config, conf
+
+
+def write_config(config, filename):
+    with open(filename, 'w') as file:
+        config.write(file)
 
 
 def set_(display, brightness, mode='default'):
